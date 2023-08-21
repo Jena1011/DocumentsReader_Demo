@@ -6,14 +6,22 @@
     android:orientation="vertical"
     tools:context=".ActionOpenDocumentFragment">
 
-    <ImageView
-        android:id="@+id/image"
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="@android:color/white"
-        android:scaleType="fitCenter"
-        android:contentDescription="@null"/>
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/markdown"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/white"
+            android:scrollbars="vertical"
+            android:singleLine="false"
+            android:contentDescription="@null"/>
+<!--        android:scaleType="fitCenter"-->
+    </ScrollView>
+
 
     <LinearLayout
         style="?android:attr/buttonBarStyle"
@@ -22,21 +30,21 @@
         android:measureWithLargestChild="true"
         android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/previous"
-            style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/previous" />
+<!--        <Button-->
+<!--            android:id="@+id/previous"-->
+<!--            style="?android:attr/buttonBarButtonStyle"-->
+<!--            android:layout_width="0dp"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_weight="1"-->
+<!--            android:text="@string/previous" />-->
 
-        <Button
-            android:id="@+id/next"
-            style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/next" />
+<!--        <Button-->
+<!--            android:id="@+id/next"-->
+<!--            style="?android:attr/buttonBarButtonStyle"-->
+<!--            android:layout_width="0dp"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_weight="1"-->
+<!--            android:text="@string/next" />-->
 
     </LinearLayout>
 

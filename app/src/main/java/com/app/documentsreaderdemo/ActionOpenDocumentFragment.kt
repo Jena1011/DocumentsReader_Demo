@@ -1,8 +1,6 @@
 package com.app.documentsreaderdemo
 
-import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Bitmap.createBitmap
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.Bundle
@@ -12,10 +10,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.TextView
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
-import java.io.FileDescriptor
-import java.io.IOException
+import java.io.*
 
 /**
  * This fragment has a big [ImageView] that shows PDF pages, and 2 [Button]s to move between pages.
@@ -23,15 +21,7 @@ import java.io.IOException
  */
 class ActionOpenDocumentFragment : Fragment() {
 
-    private lateinit var pdfRenderer: PdfRenderer
-    private lateinit var currentPage: PdfRenderer.Page
-    private var currentPageNumber: Int = INITIAL_PAGE_INDEX
-
-    private lateinit var pdfPageView: ImageView
-    private lateinit var previousButton: Button
-    private lateinit var nextButton: Button
-
-    val pageCount get() = pdfRenderer.pageCount
+    private lateinit var markdownPageView: TextView
 
     companion object {
         private const val DOCUMENT_URI_ARGUMENT =
@@ -58,116 +48,38 @@ class ActionOpenDocumentFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        pdfPageView = view.findViewById(R.id.image)
-        previousButton = view.findViewById<Button>(R.id.previous).apply {
-            setOnClickListener {
-                showPage(currentPage.index - 1)
-            }
-        }
-        nextButton = view.findViewById<Button>(R.id.next).apply {
-            setOnClickListener {
-                showPage(currentPage.index + 1)
-            }
-        }
+        markdownPageView = view.findViewById(R.id.markdown)
 
-        // If there is a savedInstanceState (screen orientations, etc.), we restore the page index.
-        currentPageNumber = savedInstanceState?.getInt(CURRENT_PAGE_INDEX_KEY, INITIAL_PAGE_INDEX)
-            ?: INITIAL_PAGE_INDEX
     }
 
     override fun onStart() {
         super.onStart()
 
         val documentUri = arguments?.getString(DOCUMENT_URI_ARGUMENT)?.toUri() ?: return
+//        val documentUri = Uri.parse(arguments?.getString(DOCUMENT_URI_ARGUMENT))
+
         try {
-            openRenderer(activity, documentUri)
-            showPage(currentPageNumber)
+            val inputStream: InputStream? = requireActivity().contentResolver.openInputStream(documentUri)
+            val inputStreamReader = InputStreamReader(inputStream)
+            val mBufferedReader = BufferedReader(inputStreamReader)
+            var mReadText = ""
+            var mTextLine = mBufferedReader.readLine()
+
+            //一行一行取出文字字串裝入String裡，直到沒有下一行文字停止跳出
+            while (mTextLine!=null)
+            {
+                mReadText += mTextLine+"\n"
+                mTextLine = mBufferedReader.readLine()
+            }
+            markdownPageView.text = mReadText
+            inputStream?.close()
+            inputStreamReader.close()
+            mBufferedReader.close()
+
         } catch (ioException: IOException) {
             Log.d(TAG, "Exception opening document", ioException)
         }
     }
-
-    override fun onStop() {
-        super.onStop()
-        try {
-            closeRenderer()
-        } catch (ioException: IOException) {
-            Log.d(TAG, "Exception closing document", ioException)
-        }
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        outState.putInt(CURRENT_PAGE_INDEX_KEY, currentPage.index)
-        super.onSaveInstanceState(outState)
-    }
-
-    /**
-     * Sets up a [PdfRenderer] and related resources.
-     */
-    @Throws(IOException::class)
-    private fun openRenderer(context: Context?, documentUri: Uri) {
-        if (context == null) return
-
-        /**
-         * It may be tempting to use `use` here, but [PdfRenderer] expects to take ownership
-         * of the [FileDescriptor], and, if we did use `use`, it would be auto-closed at the
-         * end of the block, preventing us from rendering additional pages.
-         */
-        val fileDescriptor = context.contentResolver.openFileDescriptor(documentUri, "r") ?: return
-
-        // This is the PdfRenderer we use to render the PDF.
-        pdfRenderer = PdfRenderer(fileDescriptor)
-        currentPage = pdfRenderer.openPage(currentPageNumber)
-    }
-
-    /**
-     * Closes the [PdfRenderer] and related resources.
-     *
-     * @throws IOException When the PDF file cannot be closed.
-     */
-    @Throws(IOException::class)
-    private fun closeRenderer() {
-        currentPage.close()
-        pdfRenderer.close()
-    }
-
-    /**
-     * Shows the specified page of PDF to the screen.
-     *
-     * The way [PdfRenderer] works is that it allows for "opening" a page with the method
-     * [PdfRenderer.openPage], which takes a (0 based) page number to open. This returns
-     * a [PdfRenderer.Page] object, which represents the content of this page.
-     *
-     * There are two ways to render the content of a [PdfRenderer.Page].
-     * [PdfRenderer.Page.RENDER_MODE_FOR_PRINT] and [PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY].
-     * Since we're displaying the data on the screen of the device, we'll use the later.
-     *
-     * @param index The page index.
-     */
-    private fun showPage(index: Int) {
-        if (index < 0 || index >= pdfRenderer.pageCount) return
-
-        currentPage.close()
-        currentPage = pdfRenderer.openPage(index)
-
-        // Important: the destination bitmap must be ARGB (not RGB).
-        val bitmap = createBitmap(currentPage.width, currentPage.height, Bitmap.Config.ARGB_8888)
-
-        currentPage.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-        pdfPageView.setImageBitmap(bitmap)
-
-        val pageCount = pdfRenderer.pageCount
-        previousButton.isEnabled = (0 != index)
-        nextButton.isEnabled = (index + 1 < pageCount)
-        activity?.title = getString(R.string.app_name_with_index, index + 1, pageCount)
-    }
 }
 
-/**
- * Key string for saving the state of current page index.
- */
-private const val CURRENT_PAGE_INDEX_KEY =
-    "com.example.android.actionopendocument.state.CURRENT_PAGE_INDEX_KEY"
-
 private const val TAG = "OpenDocumentFragment"
-private const val INITIAL_PAGE_INDEX = 0
